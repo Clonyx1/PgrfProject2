@@ -1,6 +1,7 @@
 package controller;
 
 import graphics.filler.ScanlineFiller;
+import graphics.filler.DequeSeedFiller;
 import graphics.filler.RecursiveSeedFiller;
 import graphics.filler.SeedFiller;
 import graphics.clipping.PolygonClipper;
@@ -62,7 +63,7 @@ public class Controller {
         this.polygon = new Polygon();
         this.clipper = new SutherlandHodgmanClipper();
         this.scanlineFiller = new ScanlineFiller(canvas.getRaster());
-        this.seedFiller = new RecursiveSeedFiller(canvas.getRaster());
+        this.seedFiller = new DequeSeedFiller(canvas.getRaster());
         this.polygonRasterizer = new PolygonOutlineRasterizer(new XiaolinWuLineRasterizer(canvas.getRaster()));
         this.clippingTriangle = createPolygon(CLIPPING_TRIANGLE_VERTICES, CLIPPING_TRIANGLE_COLOR);
     }
