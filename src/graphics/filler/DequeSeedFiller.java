@@ -4,6 +4,7 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 
 import graphics.Raster;
+import model.Point;
 
 public class DequeSeedFiller implements SeedFiller {
 
@@ -24,13 +25,13 @@ public class DequeSeedFiller implements SeedFiller {
     }
 
     private void fillRegion(int x, int y, int targetColor, int fillColor) {
-        Deque<int[]> stack = new ArrayDeque<>();
-        stack.push(new int[]{x, y});
+        Deque<Point> stack = new ArrayDeque<>();
+        stack.push(new Point(x, y));
 
         while (!stack.isEmpty()) {
-            int[] point = stack.pop();
-            int px = point[0];
-            int py = point[1];
+            Point point = stack.pop();
+            int px = point.getX();
+            int py = point.getY();
 
             Integer color = raster.getPixel(px, py);
             if (color == null || color != targetColor) {
@@ -39,15 +40,15 @@ public class DequeSeedFiller implements SeedFiller {
 
             raster.setPixel(px, py, fillColor);
 
-            stack.push(new int[]{px - 1, py});
-            stack.push(new int[]{px + 1, py});
-            stack.push(new int[]{px, py - 1});
-            stack.push(new int[]{px, py + 1});
+            stack.push(new Point(px - 1, py));
+            stack.push(new Point(px + 1, py));
+            stack.push(new Point(px, py - 1));
+            stack.push(new Point(px, py + 1));
 
-            stack.push(new int[]{px - 1, py - 1});
-            stack.push(new int[]{px - 1, py + 1});
-            stack.push(new int[]{px + 1, py - 1});
-            stack.push(new int[]{px + 1, py + 1});
+            stack.push(new Point(px - 1, py - 1));
+            stack.push(new Point(px - 1, py + 1));
+            stack.push(new Point(px + 1, py - 1));
+            stack.push(new Point(px + 1, py + 1));
         }
     }
     

@@ -2,7 +2,6 @@ package controller;
 
 import graphics.filler.ScanlineFiller;
 import graphics.filler.DequeSeedFiller;
-import graphics.filler.RecursiveSeedFiller;
 import graphics.filler.SeedFiller;
 import graphics.clipping.PolygonClipper;
 import graphics.clipping.SutherlandHodgmanClipper;

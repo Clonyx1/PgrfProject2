@@ -1,6 +1,5 @@
 package graphics.clipping;
 
-
 import model.Line;
 import model.Point;
 import model.Polygon;
@@ -14,62 +13,38 @@ public final class SutherlandHodgmanClipper implements PolygonClipper {
      * Clips a polygon against a convex clipping polygon
      * using the Sutherland-Hodgman algorithm.
      */
-    /*subject = náš polygon, boundary = polygon, kterým ořezáváme */
+    /* subject = náš polygon, boundary = polygon, kterým ořezáváme */
     public Polygon clip(Polygon subject, Polygon boundary) {
-        // TODO 1: Získejte seznam hran ořezávaného polygonu.
 
-        // TODO 2: Pomocí metody vertices() převeďte oba polygony na seznamy vrcholů.
+        List<Line> subjectEdges = subject.getLines();
 
-        // TODO 3: Ověřte, zda mají polygony dostatečný počet vrcholů.
-        //         - Pokud má ořezávaný polygon méně než 3 vrcholy, vraťte prázdný Polygon.
-        //         - Pokud má ořezávací polygon méně než 3 vrcholy nebo nulovou plochu (area() == 0), vyvolejte IllegalArgumentException.
+        List<Point> subjectVertices = vertices(subject);
+        List<Point> boundaryVertices = vertices(boundary);
 
-        // TODO 4: Pomocí metody area() určete orientaci ořezávacího polygonu. Výsledek uložte do proměnné ccw.
-        //         - Kladná hodnota znamená CCW (proti směru hodinových ručiček), záporná CW (ve směru hodinových ručiček).
-
-        // TODO 5: Postupně projděte všechny hrany ořezávacího polygonu. Každá hrana je tvořena dvěma sousedními vrcholy (a, b).
-        //         Nezapomeňte na poslední hranu, která spojuje poslední vrchol s prvním. Využijte operátor modulo (%).
-        {
-            // TODO 6: Pro každou hranu zavolejte metodu clipEdge(). Výsledek aktuálního ořezání použijte jako vstup dalšího.
-            //         Pokud během ořezávání zůstanou méně než 3 vrcholy, vraťte prázdný Polygon.
+        if (subjectVertices.size() < 3) {
+            return new Polygon();
+        }
+        if (boundaryVertices.size() < 3 || area(boundaryVertices) == 0) {
+            throw new IllegalArgumentException("Clipping polygon must have at least 3 vertices and non-zero area.");
         }
 
-        // TODO 7: Pomocí metody toPolygon() převeďte výsledný seznam vrcholů zpět na Polygon a zachovejte barvu původních hran.
-        throw new UnsupportedOperationException("TODO: clip");
-    }
+        boolean ccw = area(boundaryVertices) > 0;
 
-    /**
-     * Checks whether a point lies inside the clipping half-plane.
-     * The inside direction depends on the polygon orientation (CW or CCW).
-     */
-    public boolean isInside(Point p, Point a, Point b, boolean ccw) {
-        // TODO 1: Pomocí metody cross() určete, na které straně orientované přímky AB leží bod P.
-            double side = cross(a,b,p);
-        // TODO 2: Podle orientace ořezávacího polygonu (ccw) rozhodněte, zda bod leží uvnitř příslušné poloroviny:
-        //         - CCW: Bod je uvnitř, pokud cross >= 0.
-        //         - CW:  Bod je uvnitř, pokud cross <= 0.
-        //         Bod ležící přímo na hranici považujte za vnitřní.
-        return ccw ? side >= 0 : side <=0;
-    }
+        List<Point> currentVertices = new ArrayList<>(subjectVertices);
 
-    /**
-     * Calculates the intersection of segment PQ with the line AB.
-     * The resulting coordinates are rounded to integers.
-     */
-    public Point intersection(Point p, Point q, Point a, Point b) {
-        double d1 = cross(a,b,p);
-        double d2 = cross(a, b, q);
+        List<Line> boundaryEdges = boundary.getLines();
+        for (int i = 0; i < boundaryEdges.size(); i++) {
+            Line edge = boundaryEdges.get(i);
+            Point a = edge.getPoint1();
+            Point b = edge.getPoint2();
 
-        if(d1==d2) throw new IllegalArgumentException("Parallel lines");
+            currentVertices = clipEdge(currentVertices, a, b, ccw);
+            if (currentVertices.size() < 3) {
+                return new Polygon();
+            }
+        }
 
-        //determines the position of the intersection on the PQ segment
-        double t = d1 / (d1 - d2);
-
-        //intersection coordinates
-        int x = (int) Math.round(p.getX() + t * (q.getX() - p.getX()));
-        int y = (int) Math.round(p.getY() + t * (q.getY() - p.getY()));
-   
-        return new Point(x, y);
+        return toPolygon(currentVertices, subjectEdges.get(0).getColor());
     }
 
     /**
@@ -77,32 +52,71 @@ public final class SutherlandHodgmanClipper implements PolygonClipper {
      * Returns the vertices that remain inside the clipping half-plane.
      */
     private List<Point> clipEdge(List<Point> polygon, Point a, Point b, boolean ccw) {
-        // TODO 1: Vytvořte prázdný seznam pro ukládání výsledných vrcholů.
+        List<Point> result = new ArrayList<>();
 
-        // TODO 2: Do proměnné previous uložte poslední vrchol polygonu.
-        //         - Při první iteraci tak budete zpracovávat úsečku mezi posledním a prvním vrcholem polygonu.
+        Point previous = polygon.getLast();
 
-        // TODO 3: Postupně projděte všechny vrcholy polygonu.
-        //         - Pro každou dvojici (previous, current) pomocí isInside() zjistěte, zda jednotlivé vrcholy leží uvnitř ořezávací oblasti.
-        {
-            // TODO 4: Podle polohy obou vrcholů rozlište čtyři případy:
-            //         UVNITŘ -> UVNITŘ:
-            //             Přidejte aktuální vrchol (current).
-            //         UVNITŘ -> VNĚ:
-            //             Vypočítejte průsečík a přidejte jej do seznamu.
-            //         VNĚ -> UVNITŘ:
-            //             Přidejte průsečík a poté aktuální vrchol (current).
-            //         VNĚ -> VNĚ:
-            //             Nepřidávejte žádný vrchol.
+        for(Point current : polygon) {
+            boolean currentInside = isInside(current, a, b, ccw);
+            boolean previousInside = isInside(previous, a, b, ccw);
 
-            // TODO 5: Na konci každé iterace nastavte předchozí vrchol (previous) na aktuální (current).
+            if(currentInside && previousInside) result.add(current);
+            else if(currentInside && !previousInside) {
+                Point intersection = intersection(previous, current, a, b);
+                result.add(intersection);
+                result.add(current);
+            }
+            else if(!currentInside && previousInside) {
+                Point intersection = intersection(previous, current, a, b);
+                result.add(intersection);
+            }
+
+            previous = current;
         }
 
-        // TODO 6: Vraťte seznam výsledných vrcholů.
-        throw new UnsupportedOperationException("TODO: clipEdge");
+        return result;
     }
 
-    /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- Utilities -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
+    /**
+     * Checks whether a point lies inside the clipping half-plane.
+     * The inside direction depends on the polygon orientation (CW or CCW).
+     * 
+     * // - CCW: inside if cross >= 0.
+     * // - CW: inside if cross <= 0.
+     * // Point on the boundary is considered inside.
+     */
+    public boolean isInside(Point p, Point a, Point b, boolean ccw) {
+        // side that point p lies on
+        double side = cross(a, b, p);
+
+        return ccw ? side >= 0 : side <= 0;
+    }
+
+    /**
+     * Calculates the intersection of segment PQ with the line AB.
+     * The resulting coordinates are rounded to integers.
+     */
+    public Point intersection(Point p, Point q, Point a, Point b) {
+        double d1 = cross(a, b, p);
+        double d2 = cross(a, b, q);
+
+        if (d1 == d2)
+            throw new IllegalArgumentException("Parallel lines");
+
+        // determines the position of the intersection on the PQ segment
+        double t = d1 / (d1 - d2);
+
+        // intersection coordinates
+        int x = (int) Math.round(p.getX() + t * (q.getX() - p.getX()));
+        int y = (int) Math.round(p.getY() + t * (q.getY() - p.getY()));
+
+        return new Point(x, y);
+    }
+
+    /*
+     * -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- Utilities
+     * -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+     */
 
     /**
      * Calculates the signed area of a polygon using the shoelace formula.
@@ -114,7 +128,10 @@ public final class SutherlandHodgmanClipper implements PolygonClipper {
      *
      * The last vertex is automatically connected to the first.
      */
-    /*Určení uvnitř / vně - tzn. jestli je polygon ve směru nebo protisměru hodinových ručiček */
+    /*
+     * Determining inside / outside - i.e., whether the polygon is oriented clockwise or counterclockwise
+     * relative to the hour hand
+     */
     private double area(List<Point> polygon) {
         double sum = 0;
         for (int i = 0; i < polygon.size(); i++) {
@@ -136,10 +153,14 @@ public final class SutherlandHodgmanClipper implements PolygonClipper {
      * Used to determine whether a point is inside the clipping region.
      */
     private double cross(Point a, Point b, Point p) {
-        return ((double) b.getX() - a.getX()) * (p.getY() - a.getY()) - ((double) b.getY() - a.getY()) * (p.getX() - a.getX());
+        return ((double) b.getX() - a.getX()) * (p.getY() - a.getY())
+                - ((double) b.getY() - a.getY()) * (p.getX() - a.getX());
     }
 
-    /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+    /*
+     * -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-=-=-=-=-=-=-=
+     * -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+     */
 
     /**
      * Converts a polygon represented by edges into a list of vertices.
@@ -169,7 +190,8 @@ public final class SutherlandHodgmanClipper implements PolygonClipper {
      * or the polygon has zero area.
      *
      * Consecutive vertices form edges; zero-length edges are skipped.
-     * The polygon is stored as an open chain, with closure handled during rendering.
+     * The polygon is stored as an open chain, with closure handled during
+     * rendering.
      */
     private Polygon toPolygon(List<Point> points, int color) {
         Polygon result = new Polygon();
