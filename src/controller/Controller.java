@@ -40,14 +40,16 @@ public class Controller {
     private final Polygon polygon;
     private final PolygonClipper clipper;
     private final Polygon clippingPolygon;
+    private Polygon croppingRect;
     private final PolygonRasterizer polygonRasterizer;
 
     private Point seedFillPoint;
-    private boolean seedFillMode;
     private final SeedFiller seedFiller;
     private final ScanlineFiller scanlineFiller;
 
+    private boolean seedFillMode;
     private boolean straightLineMode;
+    private boolean cropMode;
 
     private static final int LINE_COLOR = Color.WHITE.getRGB();
     private static final int PREVIEW_COLOR = Color.RED.getRGB();
@@ -77,6 +79,7 @@ public class Controller {
 
     public void init() {
         toolbar.addClearListener(_ -> clearDrawing());
+        toolbar.addCropListener(_ -> toggleCropMode());
         toolbar.addSeedFillListener(_ -> toggleSeedFillMode());
         canvas.getInputMap(WHEN_IN_FOCUSED_WINDOW).put(getKeyStroke(VK_C, 0), "clearCanvas");
         canvas.setFocusable(true);
@@ -94,6 +97,8 @@ public class Controller {
                 if (event.getButton() == MouseEvent.BUTTON1) {
                     if (seedFillMode) {
                         fillAt(event);
+                    } else if (cropMode) {
+                        startRect(event);
                     } else {
                         startLine(event);
                     }
@@ -106,16 +111,17 @@ public class Controller {
                     return;
                 }
 
-                if (previewLine == null) {
-                    return;
+                if (previewLine != null) {
+                    Line newPolygonLine = new Line(previewLine.getPoint1(), getPoint(event), LINE_COLOR);
+                    if (straightLineMode) {
+                        newPolygonLine = lineTool.straightenLine(newPolygonLine);
+                    }
+                    polygon.addLine(newPolygonLine);
+                    previewLine = null;
+                } else if (croppingRect != null) {
+                    updateCroppingRect(getPoint(event), CLIPPING_POLYGON_COLOR);
                 }
 
-                Line newPolygonLine = new Line(previewLine.getPoint1(), getPoint(event), LINE_COLOR);
-                if (straightLineMode) {
-                    newPolygonLine = lineTool.straightenLine(newPolygonLine);
-                }
-                polygon.addLine(newPolygonLine);
-                previewLine = null;
                 render();
             }
         });
@@ -128,11 +134,15 @@ public class Controller {
                     if (straightLineMode) {
                         previewLine = lineTool.straightenLine(previewLine);
                     }
+
+                    render();
+                } else if (croppingRect != null) {
+                    updateCroppingRect(getPoint(event), PREVIEW_COLOR);
                     render();
                 }
             }
         });
-        
+
         canvas.addKeyListener(new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent event) {
@@ -162,9 +172,13 @@ public class Controller {
             polygonRasterizer.rasterize(withColor(clipped, CLIPPED_COLOR), null);
         }
         polygonRasterizer.rasterize(clippingPolygon, null);
+        if (cropMode && croppingRect != null) {
+            polygonRasterizer.rasterize(croppingRect, null);
+        }
         if (seedFillPoint != null) {
             seedFiller.fill(seedFillPoint.getX(), seedFillPoint.getY(), canvas.getBackgroundColor(), FILL_COLOR);
         }
+        
         canvas.repaint();
     }
 
@@ -173,7 +187,15 @@ public class Controller {
         previewLine = null;
         seedFillPoint = null;
         seedFillMode = false;
+        cropMode = false;
+        croppingRect = null;
         toolbar.setSeedFillMode(false);
+        render();
+    }
+
+    private void toggleCropMode() {
+        cropMode = !cropMode;
+        toolbar.setCropMode(cropMode);
         render();
     }
 
@@ -211,6 +233,27 @@ public class Controller {
         }
         previewLine = new Line(startPoint, startPoint, PREVIEW_COLOR);
         render();
+    }
+
+    private void startRect(MouseEvent event) {
+        seedFillPoint = null;
+        previewLine = null;
+        updateCroppingRect(getPoint(event), PREVIEW_COLOR);
+        render();
+    }
+
+    private void updateCroppingRect(Point bottomRight, int color) {
+        Point topLeft = croppingRect == null
+                ? bottomRight
+                : croppingRect.getLines().get(0).getPoint1();
+        
+        Point topRight = new Point(bottomRight.getX(), topLeft.getY());
+        Point bottomLeft = new Point(topLeft.getX(), bottomRight.getY());
+
+        croppingRect = new Polygon();
+        croppingRect.addLine(new Line(topLeft, topRight, color));
+        croppingRect.addLine(new Line(topRight, bottomRight, color));
+        croppingRect.addLine(new Line(bottomRight, bottomLeft, color));
     }
 
     private Polygon withColor(Polygon source, int color) {

@@ -14,6 +14,7 @@ import view.gui.icons.TrashIcon;
 public final class Toolbar extends JPanel {
 
     private final Button clearButton;
+    private final Button cropButton;
     private final Button seedFillButton;
 
     private static final Color DIVIDER = new Color(0x3A3E43);
@@ -30,9 +31,13 @@ public final class Toolbar extends JPanel {
 
         JPanel fillControls = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
         seedFillButton = new Button("Seed fill", false);
+        cropButton = new Button("Ořez", false);
         fillControls.setOpaque(false);
         fillControls.add(seedFillButton);
+        fillControls.add(cropButton);
         add(fillControls, BorderLayout.WEST);
+
+        
 
         JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 4, 0));
         clearButton = new Button("Vymazat", new TrashIcon());
@@ -52,8 +57,16 @@ public final class Toolbar extends JPanel {
         seedFillButton.setText(active ? "Vyberte bod" : "Seed fill");
     }
 
+    public void setCropMode(boolean active) {
+        cropButton.setText(active ? "Vyberte oblast" : "Ořez");
+    }
+
     public void addClearListener(ActionListener listener) {
         clearButton.addActionListener(listener);
+    }
+
+    public void addCropListener(ActionListener listener) {
+        cropButton.addActionListener(listener);
     }
 
     public void addSeedFillListener(ActionListener listener) {
