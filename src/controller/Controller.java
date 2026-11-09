@@ -11,11 +11,14 @@ import graphics.rasterizer.XiaolinWuLineRasterizer;
 import model.Line;
 import model.Point;
 import model.Polygon;
+import tools.LineTool;
 import view.Canvas;
 import view.gui.Toolbar;
 
 import java.awt.Color;
 import java.awt.event.ActionEvent;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionAdapter;
@@ -33,6 +36,7 @@ public class Controller {
     private final Toolbar toolbar;
 
     private Line previewLine;
+    private LineTool lineTool;
     private final Polygon polygon;
     private final PolygonClipper clipper;
     private final Polygon clippingPolygon;
@@ -43,6 +47,8 @@ public class Controller {
     private final SeedFiller seedFiller;
     private final ScanlineFiller scanlineFiller;
 
+    private boolean straightLineMode;
+
     private static final int LINE_COLOR = Color.WHITE.getRGB();
     private static final int PREVIEW_COLOR = Color.RED.getRGB();
     private static final int ORIGINAL_COLOR = new Color(0x9099A3).getRGB();
@@ -51,15 +57,16 @@ public class Controller {
     private static final int FILL_COLOR = new Color(0x58BFA9).getRGB();
 
     private static final List<Point> CLIPPING_POLYGON_VERTICES = List.of(
-            new Point(50, 50), 
-            new Point(200, 30), 
-            new Point(270, 150), 
-            new Point(180, 260), 
+            new Point(50, 50),
+            new Point(200, 30),
+            new Point(270, 150),
+            new Point(180, 260),
             new Point(60, 200));
 
     public Controller(Canvas canvas, Toolbar toolbar) {
         this.canvas = canvas;
         this.toolbar = toolbar;
+        lineTool = new LineTool();
         this.polygon = new Polygon();
         this.clipper = new SutherlandHodgmanClipper();
         this.scanlineFiller = new ScanlineFiller(canvas.getRaster());
@@ -72,6 +79,8 @@ public class Controller {
         toolbar.addClearListener(_ -> clearDrawing());
         toolbar.addSeedFillListener(_ -> toggleSeedFillMode());
         canvas.getInputMap(WHEN_IN_FOCUSED_WINDOW).put(getKeyStroke(VK_C, 0), "clearCanvas");
+        canvas.setFocusable(true);
+        canvas.requestFocusInWindow();
         canvas.getActionMap().put("clearCanvas", new AbstractAction() {
             @Override
             public void actionPerformed(ActionEvent event) {
@@ -100,7 +109,12 @@ public class Controller {
                 if (previewLine == null) {
                     return;
                 }
-                polygon.addLine(new Line(previewLine.getPoint1(), getPoint(event), LINE_COLOR));
+
+                Line newPolygonLine = new Line(previewLine.getPoint1(), getPoint(event), LINE_COLOR);
+                if (straightLineMode) {
+                    newPolygonLine = lineTool.straightenLine(newPolygonLine);
+                }
+                polygon.addLine(newPolygonLine);
                 previewLine = null;
                 render();
             }
@@ -111,7 +125,19 @@ public class Controller {
             public void mouseDragged(MouseEvent event) {
                 if (previewLine != null) {
                     previewLine = new Line(previewLine.getPoint1(), getPoint(event), PREVIEW_COLOR);
+                    if (straightLineMode) {
+                        previewLine = lineTool.straightenLine(previewLine);
+                    }
                     render();
+                }
+            }
+        });
+        
+        canvas.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent event) {
+                if (event.getKeyCode() == KeyEvent.VK_SHIFT) {
+                    straightLineMode = !straightLineMode;
                 }
             }
         });
