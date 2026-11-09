@@ -32,11 +32,9 @@ public final class SutherlandHodgmanClipper implements PolygonClipper {
 
         List<Point> currentVertices = new ArrayList<>(subjectVertices);
 
-        List<Line> boundaryEdges = boundary.getLines();
-        for (int i = 0; i < boundaryEdges.size(); i++) {
-            Line edge = boundaryEdges.get(i);
-            Point a = edge.getPoint1();
-            Point b = edge.getPoint2();
+        for (int i = 0; i < boundaryVertices.size(); i++) {
+            Point a = boundaryVertices.get(i);
+            Point b = boundaryVertices.get((i + 1) % boundaryVertices.size());
 
             currentVertices = clipEdge(currentVertices, a, b, ccw);
             if (currentVertices.size() < 3) {

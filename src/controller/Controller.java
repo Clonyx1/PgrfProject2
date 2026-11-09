@@ -35,7 +35,7 @@ public class Controller {
     private Line previewLine;
     private final Polygon polygon;
     private final PolygonClipper clipper;
-    private final Polygon clippingTriangle;
+    private final Polygon clippingPolygon;
     private final PolygonRasterizer polygonRasterizer;
 
     private Point seedFillPoint;
@@ -47,14 +47,15 @@ public class Controller {
     private static final int PREVIEW_COLOR = Color.RED.getRGB();
     private static final int ORIGINAL_COLOR = new Color(0x9099A3).getRGB();
     private static final int CLIPPED_COLOR = new Color(0xA4F2DF).getRGB();
-    private static final int CLIPPING_TRIANGLE_COLOR = new Color(0xE6B85C).getRGB();
+    private static final int CLIPPING_POLYGON_COLOR = new Color(0xE6B85C).getRGB();
     private static final int FILL_COLOR = new Color(0x58BFA9).getRGB();
 
-    private static final List<Point> CLIPPING_TRIANGLE_VERTICES = List.of(
-        new Point(250, 100),
-        new Point(480, 470),
-        new Point(40, 470)
-    );
+    private static final List<Point> CLIPPING_POLYGON_VERTICES = List.of(
+            new Point(50, 50), 
+            new Point(200, 30), 
+            new Point(270, 150), 
+            new Point(180, 260), 
+            new Point(60, 200));
 
     public Controller(Canvas canvas, Toolbar toolbar) {
         this.canvas = canvas;
@@ -64,7 +65,7 @@ public class Controller {
         this.scanlineFiller = new ScanlineFiller(canvas.getRaster());
         this.seedFiller = new DequeSeedFiller(canvas.getRaster());
         this.polygonRasterizer = new PolygonOutlineRasterizer(new XiaolinWuLineRasterizer(canvas.getRaster()));
-        this.clippingTriangle = createPolygon(CLIPPING_TRIANGLE_VERTICES, CLIPPING_TRIANGLE_COLOR);
+        this.clippingPolygon = createPolygon(CLIPPING_POLYGON_VERTICES, CLIPPING_POLYGON_COLOR);
     }
 
     public void init() {
@@ -123,7 +124,7 @@ public class Controller {
         Polygon subject = withPreviewLine(polygon, previewLine);
         Polygon clipped;
         try {
-            clipped = clipper.clip(subject, clippingTriangle);
+            clipped = clipper.clip(subject, clippingPolygon);
         } catch (UnsupportedOperationException unfinishedClipper) {
             clipped = null;
         }
@@ -134,7 +135,7 @@ public class Controller {
         if (clipped != null) {
             polygonRasterizer.rasterize(withColor(clipped, CLIPPED_COLOR), null);
         }
-        polygonRasterizer.rasterize(clippingTriangle, null);
+        polygonRasterizer.rasterize(clippingPolygon, null);
         if (seedFillPoint != null) {
             seedFiller.fill(seedFillPoint.getX(), seedFillPoint.getY(), canvas.getBackgroundColor(), FILL_COLOR);
         }
