@@ -3,6 +3,8 @@ package controller;
 import graphics.filler.ScanlineFiller;
 import graphics.filler.DequeSeedFiller;
 import graphics.filler.SeedFiller;
+import graphics.clipping.CohenSutherlandClipper;
+import graphics.clipping.LineClipper;
 import graphics.clipping.PolygonClipper;
 import graphics.clipping.SutherlandHodgmanClipper;
 import graphics.rasterizer.PolygonOutlineRasterizer;
@@ -38,7 +40,8 @@ public class Controller {
     private Line previewLine;
     private LineTool lineTool;
     private final Polygon polygon;
-    private final PolygonClipper clipper;
+    private final PolygonClipper polygonClipper;
+    private final LineClipper lineClipper;
     private final Polygon clippingPolygon;
     private Polygon croppingRect;
     private final PolygonRasterizer polygonRasterizer;
@@ -70,7 +73,8 @@ public class Controller {
         this.toolbar = toolbar;
         lineTool = new LineTool();
         this.polygon = new Polygon();
-        this.clipper = new SutherlandHodgmanClipper();
+        this.polygonClipper = new SutherlandHodgmanClipper();
+        this.lineClipper = new CohenSutherlandClipper();
         this.scanlineFiller = new ScanlineFiller(canvas.getRaster());
         this.seedFiller = new DequeSeedFiller(canvas.getRaster());
         this.polygonRasterizer = new PolygonOutlineRasterizer(new XiaolinWuLineRasterizer(canvas.getRaster()));
@@ -120,6 +124,15 @@ public class Controller {
                     previewLine = null;
                 } else if (croppingRect != null) {
                     updateCroppingRect(getPoint(event), CLIPPING_POLYGON_COLOR);
+
+                    if (polygon.getLines().size() == 1) {
+                        Line line = polygon.getLines().getFirst();
+                        Line clippedLine = lineClipper.clip(line, croppingRect);
+                        polygon.clear();
+                        if (clippedLine != null) {
+                            polygon.addLine(clippedLine);
+                        }
+                    }
                 }
 
                 render();
@@ -160,7 +173,7 @@ public class Controller {
         Polygon subject = withPreviewLine(polygon, previewLine);
         Polygon clipped;
         try {
-            clipped = clipper.clip(subject, clippingPolygon);
+            clipped = polygonClipper.clip(subject, clippingPolygon);
         } catch (UnsupportedOperationException unfinishedClipper) {
             clipped = null;
         }
@@ -190,11 +203,13 @@ public class Controller {
         cropMode = false;
         croppingRect = null;
         toolbar.setSeedFillMode(false);
+        toolbar.setCropMode(false);
         render();
     }
 
     private void toggleCropMode() {
         cropMode = !cropMode;
+        croppingRect = null;
         toolbar.setCropMode(cropMode);
         render();
     }
@@ -245,7 +260,7 @@ public class Controller {
     private void updateCroppingRect(Point bottomRight, int color) {
         Point topLeft = croppingRect == null
                 ? bottomRight
-                : croppingRect.getLines().get(0).getPoint1();
+                : croppingRect.getLines().getFirst().getPoint1();
         
         Point topRight = new Point(bottomRight.getX(), topLeft.getY());
         Point bottomLeft = new Point(topLeft.getX(), bottomRight.getY());
@@ -254,6 +269,7 @@ public class Controller {
         croppingRect.addLine(new Line(topLeft, topRight, color));
         croppingRect.addLine(new Line(topRight, bottomRight, color));
         croppingRect.addLine(new Line(bottomRight, bottomLeft, color));
+        croppingRect.addLine(new Line(bottomLeft, topLeft, color));
     }
 
     private Polygon withColor(Polygon source, int color) {
