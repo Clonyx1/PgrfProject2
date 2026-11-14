@@ -1,5 +1,6 @@
 package graphics.filler;
 
+import java.awt.Color;
 import java.util.ArrayDeque;
 import java.util.Deque;
 
@@ -38,7 +39,8 @@ public class DequeSeedFiller implements SeedFiller {
                 continue;
             }
 
-            raster.setPixel(px, py, fillColor);
+            int patternColor = Color.WHITE.getRGB();
+            raster.setPixel(px, py, getPixelColor(px, py, fillColor, patternColor));
 
             stack.push(new Point(px - 1, py));
             stack.push(new Point(px + 1, py));
@@ -50,6 +52,22 @@ public class DequeSeedFiller implements SeedFiller {
             stack.push(new Point(px + 1, py - 1));
             stack.push(new Point(px + 1, py + 1));
         }
+    }
+
+    private int getPixelColor(int x, int y, int fillColor, int patternColor){
+        if(y % 12 == 0){
+            if(x % 12 == 11 || x % 12 == 0 || x % 12 == 1){
+                return patternColor;
+            }
+        }
+
+        if(x % 12 == 0){
+            if(y % 12 == 0 || y % 12 == 11 || y % 12 == 1){
+                return patternColor;
+            }
+        }
+
+        return fillColor;
     }
     
 }
