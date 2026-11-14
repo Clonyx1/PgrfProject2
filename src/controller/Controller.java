@@ -54,6 +54,8 @@ public class Controller {
     private boolean straightLineMode;
     private boolean cropMode;
 
+    private Point lastMousePos;
+
     private static final int LINE_COLOR = Color.WHITE.getRGB();
     private static final int PREVIEW_COLOR = Color.RED.getRGB();
     private static final int ORIGINAL_COLOR = new Color(0x9099A3).getRGB();
@@ -154,6 +156,11 @@ public class Controller {
                     render();
                 }
             }
+
+            @Override
+            public void mouseMoved(MouseEvent event) {
+                lastMousePos = getPoint(event);
+            }
         });
 
         canvas.addKeyListener(new KeyAdapter() {
@@ -161,6 +168,16 @@ public class Controller {
             public void keyPressed(KeyEvent event) {
                 if (event.getKeyCode() == KeyEvent.VK_SHIFT) {
                     straightLineMode = !straightLineMode;
+                }
+
+                if (event.getKeyCode() == KeyEvent.VK_DELETE) {
+                    Point closestVertex = polygon.getClosestVertex(lastMousePos);
+
+                    if (closestVertex != null) {
+                        polygon.removeLinesContaining(closestVertex);
+
+                        render();
+                    }
                 }
             }
         });
@@ -191,7 +208,7 @@ public class Controller {
         if (seedFillPoint != null) {
             seedFiller.fill(seedFillPoint.getX(), seedFillPoint.getY(), canvas.getBackgroundColor(), FILL_COLOR);
         }
-        
+
         canvas.repaint();
     }
 
@@ -261,7 +278,7 @@ public class Controller {
         Point topLeft = croppingRect == null
                 ? bottomRight
                 : croppingRect.getLines().getFirst().getPoint1();
-        
+
         Point topRight = new Point(bottomRight.getX(), topLeft.getY());
         Point bottomLeft = new Point(topLeft.getX(), bottomRight.getY());
 
@@ -298,5 +315,4 @@ public class Controller {
         }
         return result;
     }
-
 }

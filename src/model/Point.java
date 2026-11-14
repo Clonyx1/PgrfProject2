@@ -18,4 +18,13 @@ public final class Point {
         return y;
     }
 
+    public double calculateDistanceFromPoint(Point p){
+        double distance = Math.hypot(p.getX() - x, p.getY() - y);
+
+        return distance;
+    }
+
+    public boolean equals(Point p){
+        return p.getX() == x && p.getY() == y ? true : false;
+    }
 }

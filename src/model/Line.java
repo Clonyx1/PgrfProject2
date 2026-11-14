@@ -24,4 +24,11 @@ public final class Line {
         return point2;
     }
 
+    public boolean contains(Point p){
+        if(p.equals(point1) || p.equals(point2)){
+            return true;
+        }
+
+        return false;
+    }
 }
